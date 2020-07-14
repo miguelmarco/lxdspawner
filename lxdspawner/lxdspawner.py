@@ -1,6 +1,6 @@
 from jupyterhub.spawner import Spawner
 import os
-from traitlets import Bool, Unicode, List, Dict
+from traitlets import Any, Bool, Unicode, List, Dict
 import subprocess
 from tornado import gen
 import pwd
@@ -20,10 +20,12 @@ class LxdSpawner(Spawner):
 
     privileged_container = Bool(False, config = True, help = "Wether to run the container as privileged (that is, with the same uid space as the host) or not")
 
-    async def get_uid_gid(self):
+    async def get_uid_gid_coroutine(self):
         uid = pwd.getpwnam(self.user.name)[2]
         gid = grp.getgrnam(self.user.name)[2]
         return uid, gid
+
+    get_uid_gid = Any(get_uid_gid_coroutine, config=True, help = "function to get the uid and gid to run inside the container")
 
     async def run_command(self, lcmd, env=None):
         cmd = ''
