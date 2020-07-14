@@ -101,8 +101,8 @@ class LxdSpawner(Spawner):
         await self.run_command(["lxc", "start", 'lxdspawner-'+self.user.name])
         for command in self.commands_to_prepare:
             scom = command.replace("{USERNAME}", self.user.name)
-            self.log.debug("Running scom")
-            self.run_command(["lxc", "exec", 'lxdspawner-'+self.user.name, "--user", str(uid), "--group", str(gid), "--", scom])
+            self.log.debug("Running {}".format(scom))
+            await self.run_command(["lxc", "exec", 'lxdspawner-'+self.user.name, "--user", str(uid), "--group", str(gid), "--", scom])
         ip = ''
         while ip == '':
             res = await self.run_command(["lxc", "list", "--format", "csv", "-c", "n4"])
