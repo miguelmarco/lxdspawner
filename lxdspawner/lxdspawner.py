@@ -27,6 +27,8 @@ class LxdSpawner(Spawner):
 
     get_uid_gid = Any(get_uid_gid_coroutine, config=True, help = "function to get the uid and gid to run inside the container")
 
+    commands_to_prepare = List([], config = True, help = "commands to run once the container is started but before the jupyter standalone server is launched")
+
     async def run_command(self, lcmd, env=None):
         cmd = ''
         for l in lcmd:
@@ -81,7 +83,7 @@ class LxdSpawner(Spawner):
             self.log.debug("Running {}".format(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "limits.cpu", str(int(self.cpu_limit))]))
             await self.run_command(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "limits.cpu", str(int(self.cpu_limit))])
         self.port = 3080
-        uid, gid = await self.get_uid_gid()
+        uid, gid = await self.get_uid_gid(self)
         cmd = ["lxc", "exec", 'lxdspawner-'+self.user.name, "--cwd", '/home/'+self.user.name, "--user", str(uid), "--group", str(gid)]
         for var in self.get_env():
             cmd.extend(['--env', '{}={}'.format(var,self.get_env()[var])])
@@ -97,6 +99,10 @@ class LxdSpawner(Spawner):
             await self.run_command(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "security.privileged", "true"])
         self.log.debug("Running {}".format(["lxc", "start", 'lxdspawner-'+self.user.name]))
         await self.run_command(["lxc", "start", 'lxdspawner-'+self.user.name])
+        for command in self.commands_to_prepare:
+            scom = command.replace("{USERNAME}", self.user.name)
+            self.log.debug("Running scom")
+            self.run_command(["lxc", "exec", 'lxdspawner-'+self.user.name, "--user", str(uid), "--group", str(gid), "--", scom])
         ip = ''
         while ip == '':
             res = await self.run_command(["lxc", "list", "--format", "csv", "-c", "n4"])
