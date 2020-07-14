@@ -18,6 +18,8 @@ class LxdSpawner(Spawner):
 
     filesystems_to_mount = List([], config = True, help = "Filesystems to mount, with (name, source, path) format")
 
+    privileged_container = Bool(False, config = True, help = "Wether to run the container as privileged (that is, with the same uid space as the host) or not")
+
 
     async def run_command(self, lcmd, env=None):
         cmd = ''
@@ -85,8 +87,9 @@ class LxdSpawner(Spawner):
         cmd.extend(["--ip=''"])
         cmd.extend(['--debug'])
         #cmd.extend(['"{}"'.format(' '.join(w for w in self.cmd+self.get_args()))])
-        self.log.debug("Running {}".format(["lxc", "config", "set", self.user.name, "security.privileged", "true"]))
-        await self.run_command(["lxc", "config", "set", self.user.name, "security.privileged", "true"])
+        if self.privileged_container:
+            self.log.debug("Running {}".format(["lxc", "config", "set", self.user.name, "security.privileged", "true"]))
+            await self.run_command(["lxc", "config", "set", self.user.name, "security.privileged", "true"])
         self.log.debug("Running {}".format(["lxc", "start", self.user.name]))
         await self.run_command(["lxc", "start", self.user.name])
         ip = ''
