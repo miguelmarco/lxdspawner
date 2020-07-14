@@ -56,6 +56,7 @@ class LxdSpawner(Spawner):
 
 
     async def start(self):
+        self.log.debug("self.user {}".format(self.user.__dict__))
         self.log.debug("Running {}".format(["lxc", "init", self.image, self.user.name]))
         await self.run_command(["lxc", "init", self.image, self.user.name])
         self.log.debug("Running {}".format(["lxc", "list", "--format", "csv", "-c", "n4"]))
@@ -77,6 +78,7 @@ class LxdSpawner(Spawner):
         cmd = ["lxc", "exec", self.user.name, "--cwd", '/home/'+self.user.name, "--user", str(uid), "--group", str(gid)]
         for var in self.get_env():
             cmd.extend(['--env', '{}={}'.format(var,self.get_env()[var])])
+        cmd.extend(['--env', 'HOME=/home/{}'.format(self.user.name)])
         cmd.extend(['--'])
         cmd.extend(self.cmd)
         cmd.extend(self.get_args())
