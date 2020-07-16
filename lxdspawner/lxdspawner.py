@@ -33,6 +33,7 @@ class LxdSpawner(Spawner):
         cmd = ''
         for l in lcmd:
             cmd += l+' '
+        self.log.debug("Running {}".format(lcmd))
         proc = await asyncio.create_subprocess_shell(cmd,
                                                     stdout=asyncio.subprocess.PIPE,
                                                     stderr=asyncio.subprocess.PIPE)
@@ -67,20 +68,14 @@ class LxdSpawner(Spawner):
 
     async def start(self):
         self.log.debug("self.user {}".format(self.user.__dict__))
-        self.log.debug("Running {}".format(["lxc", "init", self.image, 'lxdspawner-'+self.user.name]))
         await self.run_command(["lxc", "init", self.image, 'lxdspawner-'+self.user.name])
-        self.log.debug("Running {}".format(["lxc", "list", "--format", "csv", "-c", "n4"]))
         for f in self.files_to_push:
-            self.log.debug("Running {}".format(["lxc", "file", "push", f[0], 'lxdspawner-'+self.user.name+'/'+f[1]]))
             await self.run_command(["lxc", "file", "push", f[0], 'lxdspawner-'+self.user.name+'/'+f[1]])
         for m in self.filesystems_to_mount:
-            self.log.debug("Running {}".format(["lxc", "config", "device", "add", 'lxdspawner-'+self.user.name, m[0], "disk", "source="+m[1], "path="+m[2]]))
             await self.run_command(["lxc", "config", "device", "add", 'lxdspawner-'+self.user.name, m[0], "disk", "source="+m[1], "path="+m[2]])
         if self.mem_limit:
-            self.log.debug("Running {}".format(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "limits.memory", str(self.mem_limit//1048576)]))
             await self.run_command(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "limits.memory", str(self.mem_limit//1048576)+"MB"])
         if self.cpu_limit:
-            self.log.debug("Running {}".format(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "limits.cpu", str(int(self.cpu_limit))]))
             await self.run_command(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "limits.cpu", str(int(self.cpu_limit))])
         self.port = 3080
         uid, gid = await self.get_uid_gid(self)
@@ -95,27 +90,18 @@ class LxdSpawner(Spawner):
         cmd.extend(['--debug'])
         #cmd.extend(['"{}"'.format(' '.join(w for w in self.cmd+self.get_args()))])
         if self.privileged_container:
-            self.log.debug("Running {}".format(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "security.privileged", "true"]))
             await self.run_command(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "security.privileged", "true"])
-        self.log.debug("Running {}".format(["lxc", "start", 'lxdspawner-'+self.user.name]))
         await self.run_command(["lxc", "start", 'lxdspawner-'+self.user.name])
         for command in self.commands_to_prepare:
             scom = command.replace("{USERNAME}", self.user.name)
-            self.log.debug("Running {}".format(scom))
             await self.run_command(["lxc", "exec", 'lxdspawner-'+self.user.name, "--user", str(uid), "--group", str(gid), "--", scom])
         ip = ''
         while ip == '':
             res = await self.run_command(["lxc", "list", "--format", "csv", "-c", "n4"])
             lines = res.splitlines()
             lines = [l.split(',') for l in lines]
-            self.log.debug("user.name = {}".format(self.user.name))
-            self.log.debug("lines:::::")
-            self.log.debug(lines)
             ip = [l[1].split(' ') for l in lines if l[0] == 'lxdspawner-'+self.user.name][0][0]
-            self.log.debug("ip : {}".format(ip))
         self.ip = ip
-        self.log.debug("ip : {}".format(self.ip))
-        self.log.debug("cmd : {}".format(cmd))
         lcmd = ''
         for l in cmd:
             lcmd += l+' '
@@ -132,8 +118,8 @@ class LxdSpawner(Spawner):
         return
 
     async def poll(self):
-        res = subprocess.run(["lxc", "list", "--format", "csv", "-c", "ns"], capture_output=True)
-        lines = res.stdout.decode('utf-8').splitlines()
+        res = await self.run_command(["lxc", "list", "--format", "csv", "-c", "ns"])
+        lines = res.splitlines()
         lines = [l.split(',') for l in lines]
         status = [l[1] for l in lines if l[0] == 'lxdspawner-'+self.user.name]
         self.log.debug("Polling {}. Container status = {}".format('lxdspawner-'+self.user.name, status))
@@ -142,7 +128,6 @@ class LxdSpawner(Spawner):
         if len(status) == 1 and status[0] == 'RUNNING':
             return None
         else:
-            subprocess.run(["lxc", "stop", 'lxdspawner-'+self.user.name])
-            subprocess.run(["lxc", "delete", 'lxdspawner-'+self.user.name])
+            self.stop()
             return 1
 
