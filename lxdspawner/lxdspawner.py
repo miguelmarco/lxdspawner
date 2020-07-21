@@ -29,6 +29,8 @@ class LxdSpawner(Spawner):
 
     commands_to_prepare = List([], config = True, help = "commands to run once the container is started but before the jupyter standalone server is launched")
 
+    post_hub_commands = List([], config = True, help = "Commands to be run by the hub right after spawning; {USERNAME} will be substituted.")
+
     async def run_command(self, lcmd, env=None):
         cmd = ''
         for l in lcmd:
@@ -110,6 +112,8 @@ class LxdSpawner(Spawner):
         self.log.debug("created async process with command: {}".format(lcmd))
         await gen.sleep(5)
         self.log.debug("waited 5 seconds")
+        for comm in self.post_hub_commands:
+            await self.run_command([comm.replace("{USERNAME}", self.user.name)])
         return (self.ip, self.port)
 
 
