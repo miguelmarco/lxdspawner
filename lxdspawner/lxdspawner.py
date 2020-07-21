@@ -83,6 +83,7 @@ class LxdSpawner(Spawner):
         for var in self.get_env():
             cmd.extend(['--env', '{}={}'.format(var,self.get_env()[var])])
         cmd.extend(['--env', 'HOME=/home/{}'.format(self.user.name)])
+        cmd.extend(['--env', 'SHELL=/bin/bash'])
         cmd.extend(['--'])
         cmd.extend(self.cmd)
         cmd.extend(self.get_args())
