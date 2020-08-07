@@ -49,3 +49,34 @@ Each entry of that list corresponds to a mount point. In that example, the `dire
 As before, you must make sure that the directory exists in the host. One way to have persistence which is consistent along the hosts is to share a NFS directory between the hosts, and mount that directory inside the container.
 
 Notice that processes inside the container will be run as a user that might not have permissions on that directories. Set the permissions accordingly.
+
+- Once the container is created, but before the jupyter process is launched, some commands can be executed inside the container to prepare it. This is done with the config option:
+
+```
+c.LxdSpawner.commands_to_prepare = ["cp -rn /etc/skel/ /home/{USERNAME}"]
+```
+
+It is a list of strings. Each string is a command that will be run. The string `{USERNAME}` is expanded to the actual user name.
+
+
+- After the process has been spawned, some commands can be run in the hub host, with
+
+```
+c.LxdSpawner.post_hub_commands = ["setquota -u $( stat /srv/nfs4/home/{USERNAME} -c %u ) 80000 100000 200 300 /"]
+```
+
+As before, it is a list with commands, where the `{USERNAME}` string is substituted with the username.
+
+- Load balancing between the hosts in the cluster is done by assigning a weight to each host (by default, it is 1.0). The hosts with higher weights will get more spwaned processes.
+
+```
+c.LxdSpawner.host_weights = {'ubuntu2':0.0}
+```
+
+- The uid and gid that will run the spawned process are computed from the coroutine `get_uid_gid`. It takes a username as input and returns a tuple uid/gid. By default, it looks at the system users in the hub system.
+
+```
+async def getuidgid(self):
+    return (self.user.name, self.user.name)
+c.LxdSpawner.get_uid_gid = getuidgid
+```
