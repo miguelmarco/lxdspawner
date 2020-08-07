@@ -75,6 +75,7 @@ c.LxdSpawner.host_weights = {'ubuntu2':0.0}
 
 - The uid and gid that will run the spawned process are computed from the coroutine `get_uid_gid`. It takes a username as input and returns a tuple uid/gid. By default, it looks at the system users in the hub system.
 
+For instance, to set both the uid and gid t match the username (if it is a number), do:
 ```
 async def getuidgid(self):
     return (self.user.name, self.user.name)
