@@ -72,6 +72,12 @@ class LxdSpawner(Spawner):
 
     async def start(self):
         self.log.debug("self.user {}".format(self.user.__dict__))
+        existing_containers_csv = await self.run_command(["lxc", "list", "--format", "csv"])
+        existing_containers_lines = existing_containers_csv.splitlines()
+        existing_containers_names = [l.split(',')[0] for l in existing_containers_lines]
+        if "lxdspawner-"+self.user.name in existing_containers_names:
+            self.log.debug("user's container already exists, deleting")
+            await self.run_command(["lxc", "delete", "lxdspawner-"+self.user.name, "--force"])
         existing_hosts_csv = await self.run_command(["lxc", "cluster", "list", "--format", "csv"])
         existing_hosts_lines = existing_hosts_csv.splitlines()
         existing_hosts_names = [l.split(',')[0] for l in existing_hosts_lines]
