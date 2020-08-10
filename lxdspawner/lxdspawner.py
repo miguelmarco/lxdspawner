@@ -79,8 +79,8 @@ class LxdSpawner(Spawner):
             self.log.debug("user's container already exists, deleting")
             await self.run_command(["lxc", "delete", "lxdspawner-"+self.user.name, "--force"])
         existing_hosts_csv = await self.run_command(["lxc", "cluster", "list", "--format", "csv"])
-        existing_hosts_lines = existing_hosts_csv.splitlines()
-        existing_hosts_names = [l.split(',')[0] for l in existing_hosts_lines]
+        existing_hosts_lines = [l.split(',') for l in existing_hosts_csv.splitlines()]
+        existing_hosts_names = [l[0] for l in existing_hosts_lines if l[3]=='ONLINE']
         self.log.debug("Existing hosts: {}".format(existing_hosts_names))
         host_loads = {h:0.0001 for h in existing_hosts_names}
         self.log.debug("host_loads {}".format(host_loads))
@@ -88,7 +88,8 @@ class LxdSpawner(Spawner):
         self.log.debug("loads {}".format(loads))
         hosts_weights = dict([])
         for l in loads.splitlines():
-            host_loads[l] = host_loads[l]+1.0
+            if l in host_loads:
+                host_loads[l] = host_loads[l]+1.0
         self.log.debug("host_loads {}".format(host_loads))
         for l in existing_hosts_names:
             if not l in self.host_weights:
