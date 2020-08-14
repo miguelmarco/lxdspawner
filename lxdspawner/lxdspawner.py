@@ -1,6 +1,6 @@
 from jupyterhub.spawner import Spawner
 import os
-from traitlets import Any, Bool, Unicode, List, Dict
+from traitlets import Any, Bool, Unicode, List, Dict, Int
 import subprocess
 from tornado import gen
 import pwd
