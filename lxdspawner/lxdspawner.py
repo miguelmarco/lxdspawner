@@ -113,7 +113,7 @@ class LxdSpawner(Spawner):
         if self.cpu_limit:
             await self.run_command(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "limits.cpu", str(int(self.cpu_limit))])
         if self.process_limit:
-            await self.run_command(["lxc", "config", "set", "lxdspawner-"+self.user.name, "limits.process", str(int(self.process_limit))])
+            await self.run_command(["lxc", "config", "set", "lxdspawner-"+self.user.name, "limits.processes", str(int(self.process_limit))])
         self.port = 3080
         uid, gid = await self.get_uid_gid(self)
         cmd = ["lxc", "exec", 'lxdspawner-'+self.user.name, "--cwd", '/home/'+self.user.name, "--user", str(uid), "--group", str(gid)]
