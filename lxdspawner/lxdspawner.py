@@ -20,6 +20,8 @@ class LxdSpawner(Spawner):
 
     privileged_container = Bool(False, config = True, help = "Wether to run the container as privileged (that is, with the same uid space as the host) or not")
 
+    process_limit = Int(300, config = True, help = "number of processes allowed in the container")
+
     async def get_uid_gid_coroutine(self):
         uid = pwd.getpwnam(self.user.name)[2]
         gid = grp.getgrnam(self.user.name)[2]
@@ -110,6 +112,8 @@ class LxdSpawner(Spawner):
             await self.run_command(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "limits.memory", str(self.mem_limit//1048576)+"MB"])
         if self.cpu_limit:
             await self.run_command(["lxc", "config", "set", 'lxdspawner-'+self.user.name, "limits.cpu", str(int(self.cpu_limit))])
+        if self.process_limit:
+            await self.run_command(["lxc", "config", "set", "lxdspawner-"+self.user.name, "limits.process", str(int(self.process_limit))]
         self.port = 3080
         uid, gid = await self.get_uid_gid(self)
         cmd = ["lxc", "exec", 'lxdspawner-'+self.user.name, "--cwd", '/home/'+self.user.name, "--user", str(uid), "--group", str(gid)]
@@ -149,8 +153,8 @@ class LxdSpawner(Spawner):
 
 
     async def stop(self):
-        await self.run_command(["lxc", "stop", 'lxdspawner-'+self.user.name])
-        await self.run_command(["lxc", "delete", 'lxdspawner-'+self.user.name])
+        await self.run_command(["lxc", "stop", 'lxdspawner-'+self.user.name, "--force"])
+        await self.run_command(["lxc", "delete", 'lxdspawner-'+self.user.name, "--force"])
         return
 
     async def poll(self):
