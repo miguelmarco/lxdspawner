@@ -80,30 +80,7 @@ class LxdSpawner(Spawner):
         if "lxdspawner-"+self.user.name in existing_containers_names:
             self.log.debug("user's container already exists, deleting")
             await self.run_command(["lxc", "delete", "lxdspawner-"+self.user.name, "--force"])
-        existing_hosts_csv = await self.run_command(["lxc", "cluster", "list", "--format", "csv"])
-        existing_hosts_lines = [l.split(',') for l in existing_hosts_csv.splitlines()]
-        existing_hosts_names = [l[0] for l in existing_hosts_lines if l[3]=='ONLINE']
-        self.log.debug("Existing hosts: {}".format(existing_hosts_names))
-        host_loads = {h:0.0001 for h in existing_hosts_names}
-        self.log.debug("host_loads {}".format(host_loads))
-        loads = await self.run_command(["lxc", "list",  "--format", "csv", "-c", "L"])
-        self.log.debug("loads {}".format(loads))
-        hosts_weights = dict([])
-        for l in loads.splitlines():
-            if l in host_loads:
-                host_loads[l] = host_loads[l]+1.0
-        self.log.debug("host_loads {}".format(host_loads))
-        for l in existing_hosts_names:
-            if not l in self.host_weights:
-                hosts_weights[l] = 1.0
-            else:
-                hosts_weights[l] = float(self.host_weights[l])
-        self.log.debug("hosts_weights {}".format(hosts_weights))
-        hosts_relative_load = {h: hosts_weights[h]/host_loads[h] for h in existing_hosts_names}
-        self.log.debug("Relative load of hosts: {}".format(hosts_relative_load))
-        select_host = max(hosts_relative_load, key = lambda h: hosts_relative_load[h])
-        self.log.debug("Selected {} for having the highest relative availability".format(select_host))
-        await self.run_command(["lxc", "init", self.image, 'lxdspawner-'+self.user.name, "--target", select_host])
+        await self.run_command(["lxc", "init", self.image, 'lxdspawner-'+self.user.name])
         for f in self.files_to_push:
             await self.run_command(["lxc", "file", "push", f[0], 'lxdspawner-'+self.user.name+'/'+f[1]])
         for m in self.filesystems_to_mount:
