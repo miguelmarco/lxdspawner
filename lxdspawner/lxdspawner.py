@@ -139,6 +139,9 @@ class LxdSpawner(Spawner):
             lines = res.splitlines()
             lines = [l.split(',') for l in lines]
             ip = [l[1].split(' ') for l in lines if l[0] == 'lxdspawner-'+self.user.name][0][0]
+            if ip != '':
+                break
+            gen.sleep(3)
         self.ip = ip
         lcmd = ''
         for l in cmd:
@@ -153,19 +156,13 @@ class LxdSpawner(Spawner):
 
 
     async def stop(self):
-        await self.run_command(["lxc", "stop", 'lxdspawner-'+self.user.name, "--force"])
         await self.run_command(["lxc", "delete", 'lxdspawner-'+self.user.name, "--force"])
         return
 
     async def poll(self):
-        res = await self.run_command(["lxc", "list", "--format", "csv", "-c", "ns"])
-        lines = res.splitlines()
-        lines = [l.split(',') for l in lines]
-        status = [l[1] for l in lines if l[0] == 'lxdspawner-'+self.user.name]
-        self.log.debug("Polling {}. Container status = {}".format('lxdspawner-'+self.user.name, status))
-        if not status:
-            return 1
-        if len(status) == 1 and status[0] == 'RUNNING':
+        res = await self.run_command(["ping", "-c", "1", "-w", "10", self.ip])
+        self.log.debug(res)
+        if '1 received' in res:
             return None
         else:
             self.stop()
